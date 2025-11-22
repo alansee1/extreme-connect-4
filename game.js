@@ -417,7 +417,12 @@ class ConnectNGame {
 
         // Update game config display
         const configDisplay = document.getElementById('game-config-display');
-        const modeLabel = this.gameMode === 'capture' ? 'Capture Mode' : 'Classic';
+        const modeLabelMap = {
+            'classic': 'Classic',
+            'capture': 'Capture Mode',
+            'extreme-capture': 'Extreme Capture'
+        };
+        const modeLabel = modeLabelMap[this.gameMode] || 'Classic';
         configDisplay.textContent = `${this.rows}×${this.cols} board • Connect ${this.connectN} to win • ${modeLabel}`;
 
         if (!this.multiplayerMode) {
@@ -667,6 +672,9 @@ class ConnectNGame {
     }
 
     checkAndCapturePieces(lastRow, lastCol, currentPlayer) {
+        if (this.gameMode === 'extreme-capture') {
+            return this.checkAndCaptureGroups(lastRow, lastCol, currentPlayer);
+        }
         if (this.gameMode !== 'capture') return [];
 
         const capturedPieces = [];
@@ -728,6 +736,98 @@ class ConnectNGame {
 
         // Animate the flips
         this.animateFlips();
+    }
+
+    checkAndCaptureGroups(lastRow, lastCol, currentPlayer) {
+        const capturedPieces = [];
+        const opponent = currentPlayer === 1 ? 2 : 1;
+
+        // Check all opponent groups on the board for capture
+        const visited = new Set();
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const key = `${row},${col}`;
+
+                if (this.board[row][col] === opponent && !visited.has(key)) {
+                    // Found an opponent piece, check if its group is captured
+                    const group = this.findGroup(row, col, opponent);
+                    group.forEach(pos => visited.add(`${pos.row},${pos.col}`));
+
+                    // Check if this group has any liberties
+                    const liberties = this.countLiberties(group);
+
+                    if (liberties === 0) {
+                        // Group is captured!
+                        capturedPieces.push(...group);
+                    }
+                }
+            }
+        }
+
+        return capturedPieces;
+    }
+
+    findGroup(startRow, startCol, player) {
+        // Flood-fill to find all connected pieces of the same color
+        const group = [];
+        const visited = new Set();
+        const queue = [{ row: startRow, col: startCol }];
+
+        while (queue.length > 0) {
+            const { row, col } = queue.shift();
+            const key = `${row},${col}`;
+
+            if (visited.has(key)) continue;
+            visited.add(key);
+
+            if (this.board[row][col] !== player) continue;
+
+            group.push({ row, col });
+
+            // Check 4 adjacent cells (not diagonals for Go-style)
+            const directions = [
+                [-1, 0], [1, 0], [0, -1], [0, 1]
+            ];
+
+            for (const [dr, dc] of directions) {
+                const newRow = row + dr;
+                const newCol = col + dc;
+
+                if (newRow >= 0 && newRow < this.rows &&
+                    newCol >= 0 && newCol < this.cols &&
+                    !visited.has(`${newRow},${newCol}`)) {
+                    queue.push({ row: newRow, col: newCol });
+                }
+            }
+        }
+
+        return group;
+    }
+
+    countLiberties(group) {
+        // Count unique empty spaces adjacent to the group
+        const liberties = new Set();
+
+        for (const { row, col } of group) {
+            // Check 4 adjacent cells
+            const directions = [
+                [-1, 0], [1, 0], [0, -1], [0, 1]
+            ];
+
+            for (const [dr, dc] of directions) {
+                const newRow = row + dr;
+                const newCol = col + dc;
+
+                if (newRow >= 0 && newRow < this.rows &&
+                    newCol >= 0 && newCol < this.cols &&
+                    this.board[newRow][newCol] === 0) {
+                    liberties.add(`${newRow},${newCol}`);
+                }
+            }
+        }
+
+        return liberties.size;
     }
 
     animateFlips() {
