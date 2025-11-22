@@ -193,10 +193,7 @@ class ConnectNGame {
         this.multiplayerMode = true;
         this.connectToServer();
 
-        this.rows = parseInt(document.getElementById('rows').value);
-        this.cols = parseInt(document.getElementById('cols').value);
-        this.connectN = parseInt(document.getElementById('connect').value);
-
+        // Rows, cols, and connectN are already set from config panel selection
         if (!this.validateConfig()) return;
 
         this.socket.emit('create-room', {
