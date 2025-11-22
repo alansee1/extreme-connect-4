@@ -18,6 +18,13 @@ class ConnectNGame {
         this.playerNumber = null;
         this.playerName = null;
         this.opponentName = null;
+        this.moveCount = 0;
+        this.gameStartTime = null;
+        this.gameDuration = 0;
+        this.connectionStats = {
+            player1: { [this.connectN - 2]: 0, [this.connectN - 1]: 0, [this.connectN]: 0 },
+            player2: { [this.connectN - 2]: 0, [this.connectN - 1]: 0, [this.connectN]: 0 }
+        };
 
         this.colors = {
             board: '#2c3e50',
@@ -118,6 +125,11 @@ class ConnectNGame {
             if (e.key === 'Enter') {
                 this.handleModalOk();
             }
+        });
+
+        // Stats modal close button
+        document.getElementById('stats-close').addEventListener('click', () => {
+            document.getElementById('stats-modal').style.display = 'none';
         });
     }
 
@@ -282,15 +294,22 @@ class ConnectNGame {
                 if (this.animatingPiece.currentRow >= this.animatingPiece.targetRow) {
                     this.board[row][col] = player;
                     this.animatingPiece = null;
+                    this.moveCount++;
 
                     if (winner) {
                         this.gameOver = true;
+                        this.gameDuration = Date.now() - this.gameStartTime;
+                        this.calculateConnectionStats();
                         this.winningCells = winningCells;
                         const winnerName = winner === this.playerNumber ? 'You' : this.opponentName;
                         this.updateGameStatus(`${winnerName} Win!`, 'winner');
+                        setTimeout(() => this.showStatsModal(winner), 1000);
                     } else if (draw) {
                         this.gameOver = true;
+                        this.gameDuration = Date.now() - this.gameStartTime;
+                        this.calculateConnectionStats();
                         this.updateGameStatus("It's a Draw!", 'draw');
+                        setTimeout(() => this.showStatsModal(null), 1000);
                     } else {
                         this.currentPlayer = nextPlayer;
                         this.updatePlayerIndicator();
@@ -349,6 +368,15 @@ class ConnectNGame {
         this.gameOver = false;
         this.animatingPiece = null;
         this.winningCells = [];
+
+        // Reset game stats
+        this.moveCount = 0;
+        this.gameStartTime = Date.now();
+        this.gameDuration = 0;
+        this.connectionStats = {
+            player1: { [this.connectN - 2]: 0, [this.connectN - 1]: 0, [this.connectN]: 0 },
+            player2: { [this.connectN - 2]: 0, [this.connectN - 1]: 0, [this.connectN]: 0 }
+        };
 
         // Calculate optimal cell size based on board dimensions
         const maxWidth = Math.min(900, window.innerWidth - 100);
@@ -444,6 +472,7 @@ class ConnectNGame {
         if (this.animatingPiece.currentRow >= this.animatingPiece.targetRow) {
             this.board[this.animatingPiece.targetRow][this.animatingPiece.col] = this.animatingPiece.player;
             this.animatingPiece = null;
+            this.moveCount++;
             this.checkWin();
             if (!this.gameOver) {
                 this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
@@ -469,13 +498,19 @@ class ConnectNGame {
         const winner = this.checkForWinner();
         if (winner) {
             this.gameOver = true;
+            this.gameDuration = Date.now() - this.gameStartTime;
+            this.calculateConnectionStats();
             this.updateGameStatus(`Player ${winner} Wins!`, 'winner');
+            setTimeout(() => this.showStatsModal(winner), 1000);
             return;
         }
 
         if (this.isBoardFull()) {
             this.gameOver = true;
+            this.gameDuration = Date.now() - this.gameStartTime;
+            this.calculateConnectionStats();
             this.updateGameStatus("It's a Draw!", 'draw');
+            setTimeout(() => this.showStatsModal(null), 1000);
         }
     }
 
@@ -516,6 +551,65 @@ class ConnectNGame {
             }
         }
         return null;
+    }
+
+    calculateConnectionStats() {
+        // Reset stats
+        this.connectionStats = {
+            player1: { [this.connectN - 2]: 0, [this.connectN - 1]: 0, [this.connectN]: 0 },
+            player2: { [this.connectN - 2]: 0, [this.connectN - 1]: 0, [this.connectN]: 0 }
+        };
+
+        const directions = [
+            { dr: 0, dc: 1 },   // Horizontal
+            { dr: 1, dc: 0 },   // Vertical
+            { dr: 1, dc: 1 },   // Diagonal down-right
+            { dr: 1, dc: -1 }   // Diagonal down-left
+        ];
+
+        // Track which cells we've already counted in a connection to avoid duplicates
+        const counted = new Set();
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const player = this.board[row][col];
+                if (player === 0) continue;
+
+                for (const { dr, dc } of directions) {
+                    // Count consecutive pieces in this direction
+                    let count = 1;
+                    let r = row + dr;
+                    let c = col + dc;
+
+                    while (r >= 0 && r < this.rows && c >= 0 && c < this.cols &&
+                           this.board[r][c] === player) {
+                        count++;
+                        r += dr;
+                        c += dc;
+                    }
+
+                    // Only count if this is the "start" of the connection (to avoid counting same connection multiple times)
+                    // Check if there's no same-player piece in the opposite direction
+                    const prevR = row - dr;
+                    const prevC = col - dc;
+                    const isStart = prevR < 0 || prevR >= this.rows || prevC < 0 || prevC >= this.cols ||
+                                   this.board[prevR][prevC] !== player;
+
+                    if (isStart && count >= this.connectN - 2) {
+                        const playerKey = `player${player}`;
+
+                        // Count this exact connection length (not all lengths up to it)
+                        if (count === this.connectN - 2) {
+                            this.connectionStats[playerKey][this.connectN - 2]++;
+                        } else if (count === this.connectN - 1) {
+                            this.connectionStats[playerKey][this.connectN - 1]++;
+                        } else if (count >= this.connectN) {
+                            this.connectionStats[playerKey][this.connectN]++;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     isBoardFull() {
@@ -596,6 +690,76 @@ class ConnectNGame {
         const status = document.getElementById('game-status');
         status.textContent = message;
         status.className = `game-status ${className}`;
+    }
+
+    showStatsModal(winner) {
+        const modal = document.getElementById('stats-modal');
+        const title = document.getElementById('stats-title');
+
+        // Set title based on outcome
+        if (winner) {
+            if (this.multiplayerMode) {
+                const winnerName = winner === this.playerNumber ? 'You' : this.opponentName;
+                title.textContent = `${winnerName} Win!`;
+            } else {
+                title.textContent = `Player ${winner} Wins!`;
+            }
+        } else {
+            title.textContent = "It's a Draw!";
+        }
+
+        // Set total moves
+        document.getElementById('total-moves').textContent = this.moveCount;
+
+        // Format and set game duration
+        const durationSeconds = Math.floor(this.gameDuration / 1000);
+        const minutes = Math.floor(durationSeconds / 60);
+        const seconds = durationSeconds % 60;
+        document.getElementById('game-duration').textContent =
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        // Set player names
+        const player1Name = this.multiplayerMode ?
+            (this.playerNumber === 1 ? this.playerName : this.opponentName) :
+            'Player 1';
+        const player2Name = this.multiplayerMode ?
+            (this.playerNumber === 2 ? this.playerName : this.opponentName) :
+            'Player 2';
+
+        document.getElementById('player1-name').textContent = player1Name;
+        document.getElementById('player2-name').textContent = player2Name;
+
+        // Populate connection stats
+        this.populateConnectionStats('player1-connections', this.connectionStats.player1);
+        this.populateConnectionStats('player2-connections', this.connectionStats.player2);
+
+        // Show modal
+        modal.style.display = 'flex';
+    }
+
+    populateConnectionStats(elementId, stats) {
+        const container = document.getElementById(elementId);
+        container.innerHTML = '';
+
+        // Create rows for each connection length (N-2, N-1, N)
+        const lengths = [this.connectN - 2, this.connectN - 1, this.connectN];
+
+        lengths.forEach(length => {
+            const row = document.createElement('div');
+            row.className = 'connection-stat-row';
+
+            const label = document.createElement('span');
+            label.className = 'connection-label';
+            label.textContent = `Connect-${length}`;
+
+            const count = document.createElement('span');
+            count.className = 'connection-count';
+            count.textContent = stats[length] || 0;
+
+            row.appendChild(label);
+            row.appendChild(count);
+            container.appendChild(row);
+        });
     }
 }
 
