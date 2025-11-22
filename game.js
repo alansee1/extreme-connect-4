@@ -5,6 +5,7 @@ class ConnectNGame {
         this.rows = 6;
         this.cols = 7;
         this.connectN = 4;
+        this.gameMode = 'classic'; // 'classic' or 'capture'
         this.cellSize = 70;
         this.padding = 10;
         this.radius = 28;
@@ -12,6 +13,7 @@ class ConnectNGame {
         this.currentPlayer = 1;
         this.gameOver = false;
         this.animatingPiece = null;
+        this.flippingPieces = []; // Array of {row, col, progress, fromPlayer, toPlayer}
         this.multiplayerMode = false;
         this.socket = null;
         this.roomCode = null;
@@ -60,9 +62,21 @@ class ConnectNGame {
             });
         });
 
+        // Mode selector event listeners
+        document.querySelectorAll('.mode-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
         document.getElementById('start-game').addEventListener('click', () => {
             const selectedOption = document.querySelector('.connect-option.active');
             this.connectN = parseInt(selectedOption.dataset.connect);
+
+            // Get selected game mode
+            const selectedMode = document.querySelector('.mode-option.active');
+            this.gameMode = selectedMode.dataset.mode;
 
             // Auto-calculate board size based on connect-N
             const boardSizes = {
@@ -212,6 +226,7 @@ class ConnectNGame {
             rows: this.rows,
             cols: this.cols,
             connectN: this.connectN,
+            gameMode: this.gameMode,
             playerName: this.playerName
         });
     }
@@ -252,6 +267,7 @@ class ConnectNGame {
             this.rows = config.rows;
             this.cols = config.cols;
             this.connectN = config.connectN;
+            this.gameMode = config.gameMode || 'classic';
 
             document.getElementById('mode-selection').style.display = 'none';
             document.getElementById('config-panel').style.display = 'none';
@@ -265,6 +281,7 @@ class ConnectNGame {
             this.rows = config.rows;
             this.cols = config.cols;
             this.connectN = config.connectN;
+            this.gameMode = config.gameMode || 'classic';
 
             const opponent = players.find(p => p.number !== this.playerNumber);
             this.opponentName = opponent ? opponent.name : 'Opponent';
@@ -295,6 +312,12 @@ class ConnectNGame {
                     this.board[row][col] = player;
                     this.animatingPiece = null;
                     this.moveCount++;
+
+                    // Check for captures in capture mode (multiplayer)
+                    const capturedPieces = this.checkAndCapturePieces(row, col, player);
+                    if (capturedPieces.length > 0) {
+                        this.capturePieces(capturedPieces, player);
+                    }
 
                     if (winner) {
                         this.gameOver = true;
@@ -328,6 +351,7 @@ class ConnectNGame {
             this.rows = config.rows;
             this.cols = config.cols;
             this.connectN = config.connectN;
+            this.gameMode = config.gameMode || 'classic';
             this.initGame();
             this.currentPlayer = currentPlayer;
             this.updatePlayerIndicator();
@@ -393,7 +417,8 @@ class ConnectNGame {
 
         // Update game config display
         const configDisplay = document.getElementById('game-config-display');
-        configDisplay.textContent = `${this.rows}×${this.cols} board • Connect ${this.connectN} to win`;
+        const modeLabel = this.gameMode === 'capture' ? 'Capture Mode' : 'Classic';
+        configDisplay.textContent = `${this.rows}×${this.cols} board • Connect ${this.connectN} to win • ${modeLabel}`;
 
         if (!this.multiplayerMode) {
             this.updateGameStatus('');
@@ -470,9 +495,20 @@ class ConnectNGame {
         this.animatingPiece.speed += 0.3;
 
         if (this.animatingPiece.currentRow >= this.animatingPiece.targetRow) {
-            this.board[this.animatingPiece.targetRow][this.animatingPiece.col] = this.animatingPiece.player;
+            const placedRow = this.animatingPiece.targetRow;
+            const placedCol = this.animatingPiece.col;
+            const placedPlayer = this.animatingPiece.player;
+
+            this.board[placedRow][placedCol] = placedPlayer;
             this.animatingPiece = null;
             this.moveCount++;
+
+            // Check for captures in capture mode
+            const capturedPieces = this.checkAndCapturePieces(placedRow, placedCol, placedPlayer);
+            if (capturedPieces.length > 0) {
+                this.capturePieces(capturedPieces, placedPlayer);
+            }
+
             this.checkWin();
             if (!this.gameOver) {
                 this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
@@ -553,6 +589,20 @@ class ConnectNGame {
         return null;
     }
 
+    countPieces() {
+        let player1Count = 0;
+        let player2Count = 0;
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                if (this.board[row][col] === 1) player1Count++;
+                else if (this.board[row][col] === 2) player2Count++;
+            }
+        }
+
+        return { player1: player1Count, player2: player2Count };
+    }
+
     calculateConnectionStats() {
         // Reset stats
         this.connectionStats = {
@@ -616,6 +666,96 @@ class ConnectNGame {
         return this.board.every(row => row.every(cell => cell !== 0));
     }
 
+    checkAndCapturePieces(lastRow, lastCol, currentPlayer) {
+        if (this.gameMode !== 'capture') return [];
+
+        const capturedPieces = [];
+        const opponent = currentPlayer === 1 ? 2 : 1;
+
+        // Check all 8 adjacent positions for opponent pieces
+        const directions = [
+            [-1, -1], [-1, 0], [-1, 1],  // top-left, top, top-right
+            [0, -1],           [0, 1],    // left, right
+            [1, -1],  [1, 0],  [1, 1]     // bottom-left, bottom, bottom-right
+        ];
+
+        // For each cell on the board, check if it's an opponent piece that's now surrounded
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                if (this.board[row][col] === opponent) {
+                    // Check if this opponent piece is completely surrounded
+                    let isSurrounded = true;
+
+                    for (const [dr, dc] of directions) {
+                        const newRow = row + dr;
+                        const newCol = col + dc;
+
+                        // If position is out of bounds, treat as surrounded (edge rule)
+                        if (newRow < 0 || newRow >= this.rows || newCol < 0 || newCol >= this.cols) {
+                            continue; // Out of bounds = surrounded on that side
+                        }
+
+                        // If adjacent cell is not the current player's piece, not surrounded
+                        if (this.board[newRow][newCol] !== currentPlayer) {
+                            isSurrounded = false;
+                            break;
+                        }
+                    }
+
+                    if (isSurrounded) {
+                        capturedPieces.push({ row, col });
+                    }
+                }
+            }
+        }
+
+        return capturedPieces;
+    }
+
+    capturePieces(pieces, newPlayer) {
+        const oldPlayer = newPlayer === 1 ? 2 : 1;
+
+        // Start flip animation for each captured piece
+        pieces.forEach(({ row, col }) => {
+            this.flippingPieces.push({
+                row,
+                col,
+                progress: 0,
+                fromPlayer: oldPlayer,
+                toPlayer: newPlayer
+            });
+        });
+
+        // Animate the flips
+        this.animateFlips();
+    }
+
+    animateFlips() {
+        if (this.flippingPieces.length === 0) return;
+
+        let allComplete = true;
+
+        this.flippingPieces.forEach(piece => {
+            piece.progress += 0.15; // Animation speed
+            if (piece.progress < 1) {
+                allComplete = false;
+            } else {
+                // Flip is complete, update the board
+                this.board[piece.row][piece.col] = piece.toPlayer;
+            }
+        });
+
+        this.draw();
+
+        if (!allComplete) {
+            requestAnimationFrame(() => this.animateFlips());
+        } else {
+            // All flips complete, clear the array
+            this.flippingPieces = [];
+            this.draw();
+        }
+    }
+
     draw() {
         this.ctx.fillStyle = this.colors.board;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -629,17 +769,40 @@ class ConnectNGame {
                     ([r, c]) => r === row && c === col
                 );
 
-                if (this.board[row][col] === 0) {
-                    this.ctx.fillStyle = this.colors.empty;
-                } else if (isWinningCell) {
-                    this.ctx.fillStyle = this.colors.winning;
+                // Check if this piece is currently flipping
+                const flippingPiece = this.flippingPieces.find(
+                    p => p.row === row && p.col === col
+                );
+
+                let currentRadius = this.radius;
+                let fillColor;
+
+                if (flippingPiece) {
+                    // Create a shrink/grow flip animation
+                    const progress = flippingPiece.progress;
+                    if (progress < 0.5) {
+                        // Shrinking phase (first half)
+                        currentRadius = this.radius * (1 - progress * 2);
+                        fillColor = flippingPiece.fromPlayer === 1 ? this.colors.player1 : this.colors.player2;
+                    } else {
+                        // Growing phase (second half)
+                        currentRadius = this.radius * ((progress - 0.5) * 2);
+                        fillColor = flippingPiece.toPlayer === 1 ? this.colors.player1 : this.colors.player2;
+                    }
                 } else {
-                    this.ctx.fillStyle = this.board[row][col] === 1 ?
-                        this.colors.player1 : this.colors.player2;
+                    // Normal rendering
+                    if (this.board[row][col] === 0) {
+                        fillColor = this.colors.empty;
+                    } else if (isWinningCell) {
+                        fillColor = this.colors.winning;
+                    } else {
+                        fillColor = this.board[row][col] === 1 ? this.colors.player1 : this.colors.player2;
+                    }
                 }
 
+                this.ctx.fillStyle = fillColor;
                 this.ctx.beginPath();
-                this.ctx.arc(x, y, this.radius, 0, Math.PI * 2);
+                this.ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
                 this.ctx.fill();
             }
         }
@@ -728,6 +891,21 @@ class ConnectNGame {
 
         document.getElementById('player1-name').textContent = player1Name;
         document.getElementById('player2-name').textContent = player2Name;
+
+        // Show/hide piece counts for capture mode
+        const player1PieceCount = document.getElementById('player1-piece-count');
+        const player2PieceCount = document.getElementById('player2-piece-count');
+
+        if (this.gameMode === 'capture') {
+            const pieceCounts = this.countPieces();
+            player1PieceCount.innerHTML = `Pieces on Board: <span class="count">${pieceCounts.player1}</span>`;
+            player2PieceCount.innerHTML = `Pieces on Board: <span class="count">${pieceCounts.player2}</span>`;
+            player1PieceCount.style.display = 'block';
+            player2PieceCount.style.display = 'block';
+        } else {
+            player1PieceCount.style.display = 'none';
+            player2PieceCount.style.display = 'none';
+        }
 
         // Populate connection stats
         this.populateConnectionStats('player1-connections', this.connectionStats.player1);
