@@ -7,7 +7,16 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <div id="browser-warning" class="browser-warning" style="display: none;">
+        <div class="warning-content">
+            <h2>⚠️ Browser Not Supported</h2>
+            <p>This game requires Chrome, Firefox, or Edge for the best experience.</p>
+            <p>Safari has compatibility issues with our multiplayer features.</p>
+            <p>Please switch to a supported browser to play.</p>
+        </div>
+    </div>
+
+    <div class="container" id="main-container">
         <h1>Extreme Connect-N</h1>
 
         <div id="mode-selection" class="mode-selection">
@@ -72,6 +81,15 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Check if browser is Safari
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+        if (isSafari) {
+            document.getElementById('browser-warning').style.display = 'flex';
+            document.getElementById('main-container').style.display = 'none';
+        }
+    </script>
     <script src="game.js"></script>
 </body>
 </html>
