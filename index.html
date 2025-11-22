@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extreme Connect-N</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Extreme Connect-N</h1>
+
+        <div id="mode-selection" class="mode-selection">
+            <h2>Choose Game Mode</h2>
+            <div class="mode-buttons">
+                <button id="local-game-btn" class="btn-mode">
+                    <div class="mode-icon">🎮</div>
+                    <div class="mode-title">Local Game</div>
+                    <div class="mode-desc">Play with someone on this device</div>
+                </button>
+                <button id="create-room-btn" class="btn-mode">
+                    <div class="mode-icon">🌐</div>
+                    <div class="mode-title">Create Room</div>
+                    <div class="mode-desc">Start a game and invite someone</div>
+                </button>
+                <button id="join-room-btn" class="btn-mode">
+                    <div class="mode-icon">🔗</div>
+                    <div class="mode-title">Join Room</div>
+                    <div class="mode-desc">Join an existing game</div>
+                </button>
+            </div>
+        </div>
+
+        <div id="config-panel" class="config-panel" style="display: none;">
+            <div class="config-group">
+                <label for="rows">Rows:</label>
+                <input type="number" id="rows" min="4" max="20" value="6">
+            </div>
+            <div class="config-group">
+                <label for="cols">Columns:</label>
+                <input type="number" id="cols" min="4" max="20" value="7">
+            </div>
+            <div class="config-group">
+                <label for="connect">Connect:</label>
+                <input type="number" id="connect" min="3" max="10" value="4">
+            </div>
+            <button id="start-game" class="btn-primary">Start New Game</button>
+        </div>
+
+        <div id="room-info" class="room-info" style="display: none;">
+            <div class="room-code-container">
+                <span class="room-label">Room Code:</span>
+                <span id="room-code-display" class="room-code"></span>
+                <button id="copy-room-code" class="btn-copy">Copy</button>
+            </div>
+        </div>
+
+        <div id="game-area" style="display: none;">
+            <div class="game-info">
+                <div class="player-indicator">
+                    <span id="current-player">Player 1's Turn</span>
+                </div>
+                <div class="game-status" id="game-status"></div>
+            </div>
+
+            <div class="game-container">
+                <canvas id="game-board"></canvas>
+            </div>
+
+            <button id="reset-game" class="btn-secondary">Reset Game</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

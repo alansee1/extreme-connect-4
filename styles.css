@@ -1,0 +1,265 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 900px;
+    width: 100%;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 2.5em;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.config-panel {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.config-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-group label {
+    font-weight: 600;
+    color: #555;
+}
+
+.config-group input {
+    width: 70px;
+    padding: 8px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.config-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    margin-top: 20px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.game-info {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.player-indicator {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.game-status {
+    font-size: 1.5em;
+    font-weight: bold;
+    min-height: 30px;
+}
+
+.game-status.winner {
+    color: #28a745;
+    animation: celebrate 0.5s ease;
+}
+
+.game-status.draw {
+    color: #ffc107;
+}
+
+@keyframes celebrate {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+}
+
+#game-board {
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    background: #2c3e50;
+}
+
+#game-board:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.mode-selection {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.mode-selection h2 {
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 1.8em;
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-mode {
+    background: white;
+    border: 3px solid #e0e0e0;
+    border-radius: 15px;
+    padding: 30px 20px;
+    width: 200px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn-mode:hover {
+    border-color: #667eea;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.mode-icon {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+
+.mode-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.mode-desc {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.room-info {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.room-code-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.room-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.room-code {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #667eea;
+    font-family: monospace;
+    letter-spacing: 3px;
+}
+
+.btn-copy {
+    padding: 8px 15px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-copy:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+}
+
+.game-status.waiting {
+    color: #667eea;
+    font-size: 1.2em;
+}
+
+.game-status.success {
+    color: #28a745;
+}
+
+.game-status.error {
+    color: #dc3545;
+}
