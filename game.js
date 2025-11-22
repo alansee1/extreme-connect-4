@@ -127,7 +127,7 @@ class ConnectNGame {
     connectToServer() {
         if (this.socket) return;
 
-        this.socket = io('http://localhost:3000');
+        this.socket = io('https://extreme-connect-4.onrender.com');
 
         this.socket.on('room-created', ({ roomCode, playerNumber }) => {
             this.roomCode = roomCode;
