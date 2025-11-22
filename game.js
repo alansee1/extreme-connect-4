@@ -38,18 +38,46 @@ class ConnectNGame {
         });
 
         document.getElementById('create-room-btn').addEventListener('click', () => {
-            this.showNamePrompt('create');
+            this.startCreateRoom();
         });
 
         document.getElementById('join-room-btn').addEventListener('click', () => {
             this.showNamePrompt('join');
         });
 
+        // Handle connect-N option selection
+        document.querySelectorAll('.connect-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.connect-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
         document.getElementById('start-game').addEventListener('click', () => {
-            this.rows = parseInt(document.getElementById('rows').value);
-            this.cols = parseInt(document.getElementById('cols').value);
-            this.connectN = parseInt(document.getElementById('connect').value);
-            this.validateAndStartGame();
+            const selectedOption = document.querySelector('.connect-option.active');
+            this.connectN = parseInt(selectedOption.dataset.connect);
+
+            // Auto-calculate board size based on connect-N
+            const boardSizes = {
+                4: { rows: 6, cols: 7 },
+                5: { rows: 8, cols: 9 },
+                6: { rows: 9, cols: 11 },
+                7: { rows: 11, cols: 12 },
+                8: { rows: 12, cols: 14 },
+                9: { rows: 14, cols: 16 },
+                10: { rows: 15, cols: 18 }
+            };
+
+            const size = boardSizes[this.connectN];
+            this.rows = size.rows;
+            this.cols = size.cols;
+
+            // Check if this is for creating a room or local game
+            if (this.creatingRoom) {
+                this.showNamePrompt('create');
+            } else {
+                this.validateAndStartGame();
+            }
         });
 
         document.getElementById('reset-game').addEventListener('click', () => {
@@ -69,30 +97,96 @@ class ConnectNGame {
         this.canvas.addEventListener('click', (e) => this.handleClick(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleHover(e));
         this.canvas.addEventListener('mouseleave', () => this.handleMouseLeave());
+
+        // Modal event listeners
+        document.getElementById('modal-cancel').addEventListener('click', () => {
+            this.hideModal();
+        });
+
+        document.getElementById('modal-ok').addEventListener('click', () => {
+            this.handleModalOk();
+        });
+
+        // Enter key support for modal
+        document.getElementById('player-name-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleModalOk();
+            }
+        });
+
+        document.getElementById('room-code-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleModalOk();
+            }
+        });
     }
 
     showNamePrompt(action) {
-        const name = prompt('Enter your name:');
-        if (!name) return;
+        this.modalAction = action;
+        const modal = document.getElementById('name-modal');
+        const titleEl = document.getElementById('modal-title');
+        const roomCodeContainer = document.getElementById('room-code-input-container');
+        const nameInput = document.getElementById('player-name-input');
+        const roomCodeInput = document.getElementById('room-code-input');
+
+        nameInput.value = '';
+        roomCodeInput.value = '';
+
+        if (action === 'create') {
+            titleEl.textContent = 'Create Room';
+            roomCodeContainer.style.display = 'none';
+        } else {
+            titleEl.textContent = 'Join Room';
+            roomCodeContainer.style.display = 'block';
+        }
+
+        modal.style.display = 'flex';
+        nameInput.focus();
+    }
+
+    hideModal() {
+        document.getElementById('name-modal').style.display = 'none';
+    }
+
+    handleModalOk() {
+        const name = document.getElementById('player-name-input').value.trim();
+        if (!name) {
+            alert('Please enter your name');
+            return;
+        }
 
         this.playerName = name;
 
-        if (action === 'create') {
+        if (this.modalAction === 'create') {
+            this.hideModal();
             this.createRoom();
         } else {
-            const roomCode = prompt('Enter room code:');
-            if (roomCode) {
-                this.joinRoom(roomCode.toUpperCase());
+            const roomCode = document.getElementById('room-code-input').value.trim().toUpperCase();
+            if (!roomCode) {
+                alert('Please enter a room code');
+                return;
             }
+            this.hideModal();
+            this.joinRoom(roomCode);
         }
     }
 
     startLocalGame() {
         this.multiplayerMode = false;
+        this.creatingRoom = false;
         document.getElementById('mode-selection').style.display = 'none';
         document.getElementById('config-panel').style.display = 'flex';
-        document.getElementById('game-area').style.display = 'block';
-        this.initGame();
+        document.getElementById('game-area').style.display = 'none';
+        document.getElementById('start-game').textContent = 'Start Game';
+    }
+
+    startCreateRoom() {
+        this.multiplayerMode = true;
+        this.creatingRoom = true;
+        document.getElementById('mode-selection').style.display = 'none';
+        document.getElementById('config-panel').style.display = 'flex';
+        document.getElementById('game-area').style.display = 'none';
+        document.getElementById('start-game').textContent = 'Next';
     }
 
     createRoom() {
@@ -247,6 +341,8 @@ class ConnectNGame {
 
     validateAndStartGame() {
         if (!this.validateConfig()) return;
+        document.getElementById('config-panel').style.display = 'none';
+        document.getElementById('game-area').style.display = 'block';
         this.initGame();
     }
 
@@ -257,8 +353,22 @@ class ConnectNGame {
         this.animatingPiece = null;
         this.winningCells = [];
 
+        // Calculate optimal cell size based on board dimensions
+        const maxWidth = Math.min(900, window.innerWidth - 100);
+        const maxHeight = Math.min(700, window.innerHeight - 400);
+
+        const cellSizeByWidth = (maxWidth - this.padding * 2) / this.cols;
+        const cellSizeByHeight = (maxHeight - this.padding * 2) / this.rows;
+
+        this.cellSize = Math.min(70, Math.floor(Math.min(cellSizeByWidth, cellSizeByHeight)));
+        this.radius = Math.floor(this.cellSize * 0.4);
+
         this.canvas.width = this.cols * this.cellSize + this.padding * 2;
         this.canvas.height = this.rows * this.cellSize + this.padding * 2;
+
+        // Update game config display
+        const configDisplay = document.getElementById('game-config-display');
+        configDisplay.textContent = `${this.rows}×${this.cols} board • Connect ${this.connectN} to win`;
 
         if (!this.multiplayerMode) {
             this.updateGameStatus('');

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extreme Connect-N</title>
+    <title>Extreme Connect-4</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -16,8 +16,23 @@
         </div>
     </div>
 
+    <div id="name-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modal-title">Enter Your Name</h3>
+            <input type="text" id="player-name-input" class="modal-input" placeholder="Your name" maxlength="20">
+            <div id="room-code-input-container" style="display: none;">
+                <input type="text" id="room-code-input" class="modal-input" placeholder="Room code (e.g., ABC123)" maxlength="6">
+            </div>
+            <div class="modal-buttons">
+                <button id="modal-cancel" class="btn-modal btn-cancel">Cancel</button>
+                <button id="modal-ok" class="btn-modal btn-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container" id="main-container">
-        <h1>Extreme Connect-N</h1>
+        <h1>Extreme Connect-4</h1>
+        <p class="tagline">Classic Connect-4 or go extreme with Connect-5 through Connect-10 • Scaled boards up to 15×18 • Multiplayer ready</p>
 
         <div id="mode-selection" class="mode-selection">
             <h2>Choose Game Mode</h2>
@@ -41,19 +56,38 @@
         </div>
 
         <div id="config-panel" class="config-panel" style="display: none;">
-            <div class="config-group">
-                <label for="rows">Rows:</label>
-                <input type="number" id="rows" min="4" max="20" value="6">
+            <h3 class="config-title">Choose Your Game</h3>
+            <div class="connect-selector">
+                <button class="connect-option active" data-connect="4">
+                    <div class="connect-number">4</div>
+                    <div class="connect-size">6×7</div>
+                </button>
+                <button class="connect-option" data-connect="5">
+                    <div class="connect-number">5</div>
+                    <div class="connect-size">8×9</div>
+                </button>
+                <button class="connect-option" data-connect="6">
+                    <div class="connect-number">6</div>
+                    <div class="connect-size">9×11</div>
+                </button>
+                <button class="connect-option" data-connect="7">
+                    <div class="connect-number">7</div>
+                    <div class="connect-size">11×12</div>
+                </button>
+                <button class="connect-option" data-connect="8">
+                    <div class="connect-number">8</div>
+                    <div class="connect-size">12×14</div>
+                </button>
+                <button class="connect-option" data-connect="9">
+                    <div class="connect-number">9</div>
+                    <div class="connect-size">14×16</div>
+                </button>
+                <button class="connect-option" data-connect="10">
+                    <div class="connect-number">10</div>
+                    <div class="connect-size">15×18</div>
+                </button>
             </div>
-            <div class="config-group">
-                <label for="cols">Columns:</label>
-                <input type="number" id="cols" min="4" max="20" value="7">
-            </div>
-            <div class="config-group">
-                <label for="connect">Connect:</label>
-                <input type="number" id="connect" min="3" max="10" value="4">
-            </div>
-            <button id="start-game" class="btn-primary">Start New Game</button>
+            <button id="start-game" class="btn-primary">Start Game</button>
         </div>
 
         <div id="room-info" class="room-info" style="display: none;">
@@ -66,6 +100,7 @@
 
         <div id="game-area" style="display: none;">
             <div class="game-info">
+                <div class="game-config-display" id="game-config-display"></div>
                 <div class="player-indicator">
                     <span id="current-player">Player 1's Turn</span>
                 </div>
