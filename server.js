@@ -22,7 +22,7 @@ function generateRoomCode() {
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    socket.on('create-room', ({ rows, cols, connectN, playerName }) => {
+    socket.on('create-room', ({ rows, cols, connectN, gameMode, playerName }) => {
         const roomCode = generateRoomCode();
         const room = {
             code: roomCode,
@@ -31,7 +31,7 @@ io.on('connection', (socket) => {
                 name: playerName,
                 number: 1
             }],
-            config: { rows, cols, connectN },
+            config: { rows, cols, connectN, gameMode: gameMode || 'classic' },
             board: Array(rows).fill(null).map(() => Array(cols).fill(0)),
             currentPlayer: 1,
             gameStarted: false,
