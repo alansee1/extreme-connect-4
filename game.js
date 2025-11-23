@@ -769,7 +769,7 @@ class ConnectNGame {
     }
 
     findGroup(startRow, startCol, player) {
-        // Flood-fill to find all connected pieces of the same color
+        // Flood-fill to find all connected pieces of the same color (8-directional including diagonals)
         const group = [];
         const visited = new Set();
         const queue = [{ row: startRow, col: startCol }];
@@ -785,9 +785,10 @@ class ConnectNGame {
 
             group.push({ row, col });
 
-            // Check 4 adjacent cells (not diagonals for Go-style)
+            // Check all 8 adjacent cells (including diagonals)
             const directions = [
-                [-1, 0], [1, 0], [0, -1], [0, 1]
+                [-1, 0], [1, 0], [0, -1], [0, 1],  // cardinal directions
+                [-1, -1], [-1, 1], [1, -1], [1, 1]  // diagonals
             ];
 
             for (const [dr, dc] of directions) {
@@ -806,13 +807,14 @@ class ConnectNGame {
     }
 
     countLiberties(group) {
-        // Count unique empty spaces adjacent to the group
+        // Count unique empty spaces adjacent to the group (8 directions including diagonals)
         const liberties = new Set();
 
         for (const { row, col } of group) {
-            // Check 4 adjacent cells
+            // Check all 8 adjacent cells (including diagonals)
             const directions = [
-                [-1, 0], [1, 0], [0, -1], [0, 1]
+                [-1, 0], [1, 0], [0, -1], [0, 1],  // cardinal directions
+                [-1, -1], [-1, 1], [1, -1], [1, 1]  // diagonals
             ];
 
             for (const [dr, dc] of directions) {
@@ -853,6 +855,9 @@ class ConnectNGame {
             // All flips complete, clear the array
             this.flippingPieces = [];
             this.draw();
+
+            // Check for win after captures complete
+            this.checkWin();
         }
     }
 
